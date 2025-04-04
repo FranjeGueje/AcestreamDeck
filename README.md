@@ -5,7 +5,6 @@ Acestream on Steam Deck (it is possible that it will work on other Linux) is a s
 These tools are:
 
 - AceStream engine --> service that uploads/downloads acestream content.
-- acestream-launcher --> python library that automates the process.
 - <ins>an external</ins> Media Player --> it is necessary to have a media-player that runs video-stream (for example mpv or vlc).
 - acestreamDeck.sh --> script that merges all of the above.
 
@@ -14,8 +13,7 @@ The acestream links can be used from the tool itself as well as from the web bro
 ## Requisites
 These are the requirements of this application:
 
-- ~~python and the venv module (already installed in Steam OS)~~.From version 5 onwards it is not necessary.
-- (recommended for a user-friendly version) zenity (already installed on Steam OS).
+- It's recommended "zenity" (already installed on Steam OS) for a user-friendly version.
 
 ## Installation
 Download the releases zip and unzip it to a desired location, where you usually store your favorite programs.
@@ -47,11 +45,13 @@ Edits the parameters for the acestream engine command to run the acestream links
 #   You can get all parameters with "./Acestreamengine-x86_64.AppImage --help"
 ```
 
-### ACELAUNCH - acestream-launcher PATH
-Edits where is the acestream-launcher. Example and default:
+### ACEURL - ACESSTREAM ENGINE URL
+Url to open the acestream engine.
 ```
-# ACELAUNCH="$ACEHOME/acestream-launcher"
-#   In the same path that this app
+# ACEURL="http://127.0.0.1:6878/ace/getstream?content_id="
+#   URL with the default options.
+# ACEURL="http://127.0.0.1:8888/ace/getstream?content_id="
+#   URL with the port 8888 in acestream engine options
 ```
 
 ### Don't edit this part
@@ -96,5 +96,4 @@ Usage of AcestreamDeck:
 AcestreamDeck creates a AppImage for "acetream engine" from the "acestream.yml" file. You can to use "pkg2appimage.AppImage" to generate the AppImge file.
 
 ## Credits
-- acestream-launcher - https://github.com/jonian/acestream-launcher
 - To my wife and daughter for putting up with me.

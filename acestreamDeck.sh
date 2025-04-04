@@ -11,7 +11,6 @@
 #       uninstall       --> desinstala la app desktop
 # SALIDAS/EXITs:
 #   0: Todo correcto, llegamos al final. All correct, we have reached the end.
-#   11: acestream-launcher not exist
 #
 ##############################################################################################################################################################
 ACEHOME=$(dirname "$(realpath "$0")")
@@ -45,14 +44,17 @@ ACEPLAYER="xdg-open"
 #   You can get all parameters with "./Acestreamengine-x86_64.AppImage --help"
 ##############################################################################################################################################################
 ACEENGINE="$ACEHOME/Acestreamengine-x86_64.AppImage --client-console --upload-limit 1000 --live-cache-type memory"
+
 ##############################################################################################################################################################
-#! ACELAUNCH - acestream-launcher PATH
-#        Where is the acestream-launcher
+#! ACEURL - ACESSTREAM ENGINE URL
+#        Url to open the acestream engine.
 # Examples:
-# ACELAUNCH="$ACEHOME/acestream-launcher"
-#   In the same path that this app
+# ACEURL="http://127.0.0.1:6878/ace/getstream?content_id="
+#   URL with the default options.
+# ACEURL="http://127.0.0.1:8888/ace/getstream?content_id="
+#   URL with the port 8888 in acestream engine options
 ##############################################################################################################################################################
-ACELAUNCH="$ACEHOME/acestream-launcher"
+ACEURL="http://127.0.0.1:6878/ace/getstream?content_id="
 
 
 ##############################################################################################################################################################
@@ -61,9 +63,7 @@ ACELAUNCH="$ACEHOME/acestream-launcher"
 #########################################
 ##      VARIABLES GLOBALES
 NOMBRE=AcestreamDeck
-VERSION=5
-# Where is the acestream-launcher
-ACELAUNCH="$ACEHOME/acestream-launcher"
+VERSION=6
 #########################################
 ##      FUNCIONES
 
@@ -119,10 +119,10 @@ function fLanguage() {
 function menu() {
         
     # Función de bienvenida
-    zenity --title="$NOMBRE -v$VERSION" --window-icon=icon.png --timeout 6 --info --width=250 --text="$TEXTOBIENVENIDA" 2>/dev/null
+    zenity --title="$NOMBRE-v$VERSION" --window-icon=icon.png --timeout 6 --info --width=250 --text="$TEXTOBIENVENIDA" 2>/dev/null
 
     RESULTADO=$(zenity --list \
-                    --title="$NOMBRE -v$VERSION" --window-icon=icon.png \
+                    --title="$NOMBRE-v$VERSION" --window-icon=icon.png \
                     --height=230 \
                     --width=300 \
                     --ok-label="$TEXTOACEPTAR" \
@@ -134,24 +134,25 @@ function menu() {
                     1 "$TEXTINSTALL" 2 "$TEXTUNINSTALL" 3 "$TEXTPLAY" 4 "$TEXTSALIR")
     case "$RESULTADO" in
         "$TEXTINSTALL")
-            $0 install && zenity --timeout 4 --info --title="$NOMBRE -v$VERSION" --window-icon=icon.png --text="$TEXTINSTALADO" 2>/dev/null            
+            $0 install && zenity --timeout 4 --info --title="$NOMBRE-v$VERSION" --window-icon=icon.png --text="$TEXTINSTALADO" 2>/dev/null            
             ;;
         "$TEXTUNINSTALL")
-            $0 uninstall && zenity --timeout 4 --info --title="$NOMBRE -v$VERSION" --window-icon=icon.png --text="$TEXTUNINSTALADO" 2>/dev/null 
+            $0 uninstall && zenity --timeout 4 --info --title="$NOMBRE-v$VERSION" --window-icon=icon.png --text="$TEXTUNINSTALADO" 2>/dev/null 
             ;;
         "$TEXTPLAY")
             datos=$(zenity --forms \
-               --title="$NOMBRE -v$VERSION" --window-icon=icon.png \
+               --title="$NOMBRE-v$VERSION" --window-icon=icon.png \
                --text="$TEXTLINK" \
                --add-entry="acestream://")
             ans=$?
             if [ $ans -eq 0 ];then
+                datos="${datos/acestream:\/\//}"
                 $0 "acestream://$datos"
             fi
         ;;
     esac
     
-    zenity --timeout 4 --info --title="$NOMBRE -v$VERSION" --window-icon=icon.png \
+    zenity --timeout 4 --info --title="$NOMBRE-v$VERSION" --window-icon=icon.png \
         --width=250 --text="$TEXTOSALIDA" 2>/dev/null
     exit 0
 }
@@ -182,18 +183,33 @@ case "$1" in
         exit 0
     ;;
     "acestream://"*)
-        [ ! -f "$ACELAUNCH" ] && echo "[ERROR] The $ACELAUNCH don't exist" && exit 11
-
-        #Preparamos el directorio portable
+        ########### PRE EJECUCIÓN ############
         [ -d "$ACEHOME/Acestreamengine-x86_64.AppImage.home" ] && rm -Rf "$ACEHOME/Acestreamengine-x86_64.AppImage.home"
         mkdir -p "$ACEHOME/Acestreamengine-x86_64.AppImage.home"
+        seed="${1/acestream:\/\//}"
+        m3u_file=$(mktemp).m3u
+        echo "$ACEURL""$seed" > "$m3u_file"
+        #######################################
 
-        ########### EJECUTAMOS ################
-        "$ACELAUNCH" "$1" -p "$ACEPLAYER" -e "$ACEENGINE"
+        ########### EJECUTAMOS ENGINE ################
+        eval "$ACEENGINE" > "$0.log" 2>&1 &
+        echo -e "[INFO] Running Acestream Engine on Linux. Please, wait ..." &
+        t=0;
+        while [ "$t" -ne 10 ]; do
+            if grep "|started" < "$0.log" >/dev/null; then
+                echo -e "[INFO] Acestream Engine started"
+                break
+            fi
+            sleep 1
+            ((t++))
+        done
+        ########### EJECUTAMOS PLAYER ################
+        echo -e "[INFO] Launching the player..."
+        eval "$ACEPLAYER" "$m3u_file"
         #######################################
 
         ########### POST EJECUCIÓN ############
-        sleep 1 #Esperamos 1seg
+        sleep 3 #Esperamos 1seg
         #Borramos caches
         [ -d "$ACEHOME/Acestreamengine-x86_64.AppImage.home" ] && rm -Rf "$ACEHOME/Acestreamengine-x86_64.AppImage.home"
         #######################################
