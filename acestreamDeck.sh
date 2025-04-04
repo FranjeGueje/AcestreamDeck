@@ -63,7 +63,7 @@ ACEURL="http://127.0.0.1:6878/ace/getstream?content_id="
 #########################################
 ##      VARIABLES GLOBALES
 NOMBRE=AcestreamDeck
-VERSION=6
+VERSION=7
 #########################################
 ##      FUNCIONES
 
@@ -119,10 +119,10 @@ function fLanguage() {
 function menu() {
         
     # Función de bienvenida
-    zenity --title="$NOMBRE-v$VERSION" --window-icon=icon.png --timeout 6 --info --width=250 --text="$TEXTOBIENVENIDA" 2>/dev/null
+    zenity --title="$NOMBRE-v$VERSION" --window-icon="$ACEHOME"/icon.png --timeout 6 --info --width=250 --text="$TEXTOBIENVENIDA" 2>/dev/null
 
     RESULTADO=$(zenity --list \
-                    --title="$NOMBRE-v$VERSION" --window-icon=icon.png \
+                    --title="$NOMBRE-v$VERSION" --window-icon="$ACEHOME"/icon.png \
                     --height=230 \
                     --width=300 \
                     --ok-label="$TEXTOACEPTAR" \
@@ -134,14 +134,14 @@ function menu() {
                     1 "$TEXTINSTALL" 2 "$TEXTUNINSTALL" 3 "$TEXTPLAY" 4 "$TEXTSALIR")
     case "$RESULTADO" in
         "$TEXTINSTALL")
-            $0 install && zenity --timeout 4 --info --title="$NOMBRE-v$VERSION" --window-icon=icon.png --text="$TEXTINSTALADO" 2>/dev/null            
+            $0 install && zenity --timeout 4 --info --title="$NOMBRE-v$VERSION" --window-icon="$ACEHOME"/icon.png --text="$TEXTINSTALADO" 2>/dev/null            
             ;;
         "$TEXTUNINSTALL")
-            $0 uninstall && zenity --timeout 4 --info --title="$NOMBRE-v$VERSION" --window-icon=icon.png --text="$TEXTUNINSTALADO" 2>/dev/null 
+            $0 uninstall && zenity --timeout 4 --info --title="$NOMBRE-v$VERSION" --window-icon="$ACEHOME"/icon.png --text="$TEXTUNINSTALADO" 2>/dev/null 
             ;;
         "$TEXTPLAY")
             datos=$(zenity --forms \
-               --title="$NOMBRE-v$VERSION" --window-icon=icon.png \
+               --title="$NOMBRE-v$VERSION" --window-icon="$ACEHOME"/icon.png \
                --text="$TEXTLINK" \
                --add-entry="acestream://")
             ans=$?
@@ -152,7 +152,7 @@ function menu() {
         ;;
     esac
     
-    zenity --timeout 4 --info --title="$NOMBRE-v$VERSION" --window-icon=icon.png \
+    zenity --timeout 4 --info --title="$NOMBRE-v$VERSION" --window-icon="$ACEHOME"/icon.png \
         --width=250 --text="$TEXTOSALIDA" 2>/dev/null
     exit 0
 }
@@ -186,8 +186,9 @@ case "$1" in
         ########### PRE EJECUCIÓN ############
         [ -d "$ACEHOME/Acestreamengine-x86_64.AppImage.home" ] && rm -Rf "$ACEHOME/Acestreamengine-x86_64.AppImage.home"
         mkdir -p "$ACEHOME/Acestreamengine-x86_64.AppImage.home"
+        pkill acestreamengine # Matamos todos los acestreamengine
         seed="${1/acestream:\/\//}"
-        m3u_file=$(mktemp).m3u
+        m3u_file=$(mktemp --suffix=.m3u)
         echo "$ACEURL""$seed" > "$m3u_file"
         #######################################
 
@@ -205,13 +206,21 @@ case "$1" in
         done
         ########### EJECUTAMOS PLAYER ################
         echo -e "[INFO] Launching the player..."
-        eval "$ACEPLAYER" "$m3u_file"
+        "$ACEPLAYER" "$m3u_file" &
+        while pgrep -f "$m3u_file"  > /dev/null; do
+            sleep 1
+        done
+        echo -e "[INFO] The player has exited."
         #######################################
 
         ########### POST EJECUCIÓN ############
-        sleep 3 #Esperamos 1seg
-        #Borramos caches
+        echo -e "[INFO] Closing the app..."
+        sleep 1 #Esperamos 1seg
+        # Detenemos Acestreamengine y borramos caches
+        pkill acestreamengine
+        sleep 1 #Esperamos 1seg
         [ -d "$ACEHOME/Acestreamengine-x86_64.AppImage.home" ] && rm -Rf "$ACEHOME/Acestreamengine-x86_64.AppImage.home"
+        [ -f "$m3u_file" ] && rm -f "$m3u_file"
         #######################################
     ;;
     -h|--help)
@@ -226,4 +235,5 @@ case "$1" in
         fi
     ;;
 esac
+echo -e "[INFO] Finished."
 exit 0
